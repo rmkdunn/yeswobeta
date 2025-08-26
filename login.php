@@ -1,62 +1,76 @@
 <?php
-include "config.php";
 session_start();
+include "config.php";
 
-if (isset($_SESSION['loggedin'])) {
-    header('Location: index.php');
-    exit;
-}
+$message = '';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if ( !isset($_POST['username'], $_POST['password']) ) {
-        exit('Please fill both the username and password fields!');
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (empty($_POST['username']) || empty($_POST['password'])) {
+        $message = 'Please fill both the username and password fields!';
+    } else {
+        $stmt = $conn->prepare('SELECT id, password FROM accounts WHERE username = ?');
+        $stmt->execute([$_POST['username']]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($stmt = $conn->prepare('SELECT id, password FROM users WHERE username = ?')) {
-        $stmt->bindParam(1, $_POST['username']);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($user && password_verify($_POST['password'], $user['password'])) {
+        if ($account && password_verify($_POST['password'], $account['password'])) {
             session_regenerate_id();
             $_SESSION['loggedin'] = TRUE;
             $_SESSION['name'] = $_POST['username'];
-            $_SESSION['id'] = $user['id'];
+            $_SESSION['id'] = $account['id'];
             header('Location: index.php');
+            exit;
         } else {
-            echo 'Incorrect username and/or password!';
+            $message = 'Incorrect username and/or password!';
         }
-    } else {
-        echo 'Could not prepare statement!';
     }
 }
 ?>
 <!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="utf-8">
-		<title>Login</title>
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
-	</head>
-	<body>
-		<div class="container">
-			<div class="row mt-5">
-				<div class="col-md-6 offset-md-3">
-					<h1 class="text-center">Login</h1>
-					<form action="login.php" method="post">
-						<div class="form-group">
-							<label for="username">Username</label>
-							<input type="text" name="username" placeholder="Username" id="username" required class="form-control">
-						</div>
-						<div class="form-group">
-							<label for="password">Password</label>
-							<input type="password" name="password" placeholder="Password" id="password" required class="form-control">
-						</div>
-						<input type="submit" value="Login" class="btn btn-primary">
-                        <a href="register.php" class="btn btn-secondary">Register</a>
-					</form>
-				</div>
-			</div>
-		</div>
-	</body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+        }
+        .login-form {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <h1 class="text-center mb-4">DFWAM Login</h1>
+        <?php if ($message): ?>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($message); ?></div>
+        <?php endif; ?>
+        <form action="login.php" method="post">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" name="username" class="form-control" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" name="password" class="form-control" id="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
 </html>

@@ -1,36 +1,44 @@
 <?php
+session_start();
 include "config.php";
-if (isset($_POST['room']) && isset($_POST['work_to_be_done'])) {
-	//variables
-	$room = $_POST['room'];
-	$work_to_be_done = $_POST['work_to_be_done'];
-	if (!$conn->connect_error) {
-		$query = "INSERT INTO `orders`(`room`, `work_to_be_done`) VALUES ('" . $room . "', '" . $work_to_be_done . "')";
-		$conn->exec($query);
-		session_start();
-		$_SESSION['message'] = "<b>Success!</b> Note Created Successfully!</p> ";
-		return header('location: index.php');
-	}
+
+if (!isset($_SESSION['loggedin'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// mark as completed
 if (isset($_POST['completed'])) {
-	date_default_timezone_set('America/Chicago'); // Set the timezone to Central Standard Time (CST)
-	$id = $_POST['completed'];
-	$query = $conn->prepare("SELECT * FROM `orders` WHERE id =" . $id);
-	$query->execute();
-	$query->setFetchMode(PDO::FETCH_ASSOC);
-	$data = $query->fetchAll();
-	session_start();
-	if ($data[0]["completed"] == true) {
-		$query = "UPDATE `orders` SET completed='" . false . "', time_completed='" . "" . "' WHERE id =" . $id;
-		$conn->exec($query) or die("Something went wrong!");
-		$_SESSION['completed'] = "<b>Success!</b> Note Marked as Uncompleted Successfully.</p> ";
-	} else {
-		$query = "UPDATE `orders` SET completed='" . true . "', time_completed='" . date('Y-m-d H:i:s') . "' WHERE id =" . $id;
-		$conn->exec($query) or die("Something went wrong!");
-		$_SESSION['completed'] = "<b>Success!</b> Note Marked as Completed Successfully.</p> ";
-	}
-	return header('location: index.php');
+    $order_id = $_POST['completed'];
+
+    // First, get the current status of the order
+    $query = $conn->prepare("SELECT completed FROM `orders` WHERE `id` = :order_id");
+    $query->bindParam(':order_id', $order_id);
+    $query->execute();
+    $order = $query->fetch(PDO::FETCH_ASSOC);
+
+    if ($order) {
+        $new_status = $order['completed'] ? 0 : 1;
+        $completed_by = $new_status ? $_SESSION['name'] : null;
+        $time_completed = $new_status ? date('Y-m-d H:i:s') : null;
+
+        $update = $conn->prepare("UPDATE `orders` SET `completed` = :new_status, `time_completed` = :time_completed, `completed_by` = :completed_by WHERE `id` = :order_id");
+        $update->bindParam(':new_status', $new_status);
+        $update->bindParam(':time_completed', $time_completed);
+        $update->bindParam(':completed_by', $completed_by);
+        $update->bindParam(':order_id', $order_id);
+        
+        if ($update->execute()) {
+            $_SESSION['completed'] = "Order #$order_id status has been updated successfully!";
+        } else {
+            $_SESSION['message'] = "Failed to update order status.";
+        }
+    } else {
+        $_SESSION['message'] = "Order not found.";
+    }
+    header('Location: index.php');
+    exit;
 }
-?>
+
+// Redirect back if the POST variable is not set
+header('Location: index.php');
+exit;
