@@ -1,27 +1,33 @@
 <?php
-session_start();
 include "config.php";
+session_start();
 
-$message = '';
+if (isset($_SESSION['loggedin'])) {
+    header('Location: index.php');
+    exit;
+}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (empty($_POST['username']) || empty($_POST['password'])) {
-        $message = 'Please fill both the username and password fields!';
-    } else {
-        $stmt = $conn->prepare('SELECT id, password FROM accounts WHERE username = ?');
-        $stmt->execute([$_POST['username']]);
-        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if ( !isset($_POST['username'], $_POST['password']) ) {
+        exit('Please fill both the username and password fields!');
+    }
 
-        if ($account && password_verify($_POST['password'], $account['password'])) {
+    if ($stmt = $conn->prepare('SELECT id, password FROM users WHERE username = ?')) {
+        $stmt->bindParam(1, $_POST['username']);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($_POST['password'], $user['password'])) {
             session_regenerate_id();
             $_SESSION['loggedin'] = TRUE;
             $_SESSION['name'] = $_POST['username'];
-            $_SESSION['id'] = $account['id'];
+            $_SESSION['id'] = $user['id'];
             header('Location: index.php');
-            exit;
         } else {
-            $message = 'Incorrect username and/or password!';
+            echo 'Incorrect username and/or password!';
         }
+    } else {
+        echo 'Could not prepare statement!';
     }
 }
 ?>
@@ -53,9 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="login-form">
         <h1 class="text-center mb-4">DFWAM Login</h1>
-        <?php if ($message): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($message); ?></div>
-        <?php endif; ?>
         <form action="login.php" method="post">
             <div class="form-group">
                 <label for="username">Username</label>

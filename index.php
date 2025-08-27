@@ -2,8 +2,8 @@
 session_start();
 
 if (!isset($_SESSION['loggedin'])) {
-	header('Location: login.php');
-	exit;
+    header('Location: login.php');
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -92,7 +92,6 @@ if (!isset($_SESSION['loggedin'])) {
                                 <th>Work To Be Done</th>
                                 <th>Submitted By</th>
                                 <th>Time</th>
-
                                 <th>Completed Time</th>
                                 <th>Completed By</th>
                                 <th class="text-center">Completed</th>

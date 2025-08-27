@@ -77,7 +77,7 @@ $notes_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <label for="notesfornextshift">Note:</label>
                                 <textarea class="form-control" name="notesfornextshift" id="notesfornextshift" rows="4" required></textarea>
                             </div>
-                            <input type="hidden" name="engineer" value="<?php echo htmlspecialchars($_SESSION['name']); ?>">
+                            <input type="hidden" name="engineer" value="<?php echo htmlspecialchars($_SESSION['name'], ENT_QUOTES, 'UTF-8'); ?>">
                             <button type="submit" class="btn btn-primary btn-block">Submit Note</button>
                         </form>
                     </div>
@@ -101,10 +101,10 @@ $notes_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <tbody>
                             <?php foreach ($notes_data as $row): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($row['id'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($row['timestamp'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($row['notesfornextshift'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($row['engineer'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($row['timestamp'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($row['notesfornextshift'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($row['engineer'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
