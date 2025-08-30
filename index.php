@@ -15,15 +15,10 @@ if (!isset($_SESSION['loggedin'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
     <style>
-        .table-responsive {
-            display: block;
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .form-inline-centered {
-            display: flex;
-            justify-content: center;
+        .work-order-photo {
+            max-width: 150px;
+            max-height: 150px;
+            cursor: pointer;
         }
     </style>
     <title>Rooms On Call</title>
@@ -64,18 +59,18 @@ if (!isset($_SESSION['loggedin'])) {
         <div class="row">
             <div class="col">
                 <h2 class="text-center">Current Work Orders</h2>
-                <h3 class="text-center">Welcome, <?php echo htmlspecialchars($_SESSION['name'] ?? ''); ?>!</h3>
+                <h3 class="text-center">Welcome, <?php echo htmlspecialchars($_SESSION['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>!</h3>
             </div>
         </div>
         <div class="row mt-2">
             <div class="col">
                 <?php
                 if(isset($_SESSION['message'])) {
-                    echo '<p class="alert alert-info">'.htmlspecialchars($_SESSION['message']).'</p>';
+                    echo '<p class="alert alert-info">'.htmlspecialchars($_SESSION['message'], ENT_QUOTES, 'UTF-8').'</p>';
                     unset($_SESSION['message']);
                 }
                 if(isset($_SESSION['completed'])) {
-                    echo '<p class="alert alert-success">'.htmlspecialchars($_SESSION['completed']).'</p>';
+                    echo '<p class="alert alert-success">'.htmlspecialchars($_SESSION['completed'], ENT_QUOTES, 'UTF-8').'</p>';
                     unset($_SESSION['completed']);
                 }
                 ?>
@@ -90,6 +85,7 @@ if (!isset($_SESSION['loggedin'])) {
                                 <th>#</th>
                                 <th>Room</th>
                                 <th>Work To Be Done</th>
+                                <th>Photo</th>
                                 <th>Submitted By</th>
                                 <th>Time</th>
                                 <th>Completed Time</th>
@@ -110,21 +106,39 @@ if (!isset($_SESSION['loggedin'])) {
 
                             foreach ($data as $row) {
                                 $checkbox = $row['completed'] ? "checked" : "";
-                                echo '<tr>
-                                        <td>' . htmlspecialchars($row['id'] ?? '') . '</td>
-                                        <td>' . htmlspecialchars($row['room'] ?? '') . '</td>
-                                        <td>' . htmlspecialchars($row['work_to_be_done'] ?? '') . '</td>
-                                        <td>' . htmlspecialchars($row['submitted_by'] ?? '') . '</td>
-                                        <td>' . htmlspecialchars($row['time'] ?? '') . '</td>
-                                        <td>' . htmlspecialchars($row['time_completed'] ?? '') . '</td>
-                                        <td>' . htmlspecialchars($row['completed_by'] ?? '') . '</td>
-                                        <td class="text-center">
-                                            <form action="operate.php" method="post" id="form-' . $row['id'] . '" class="form-inline-centered">
-                                                <input type="hidden" name="completed" value="' . $row['id'] . '">
-                                                <input onclick="document.getElementById(\'form-' . $row['id'] . '\').submit()" type="checkbox" class="form-check-input" ' . $checkbox . '>
-                                            </form>
-                                        </td>
-                                    </tr>';
+                                $id = htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $room = htmlspecialchars($row['room'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $work_to_be_done = htmlspecialchars($row['work_to_be_done'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $photo = htmlspecialchars($row['photo'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $submitted_by = htmlspecialchars($row['submitted_by'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $time = htmlspecialchars($row['time'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $time_completed = htmlspecialchars($row['time_completed'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $completed_by = htmlspecialchars($row['completed_by'] ?? '', ENT_QUOTES, 'UTF-8');
+
+                                echo "
+                                <tr>
+                                    <td>{$id}</td>
+                                    <td>{$room}</td>
+                                    <td>{$work_to_be_done}</td>
+                                    <td>";
+                                if ($photo) {
+                                    echo "<img src='{$photo}' alt='Work Order Photo' class='work-order-photo' data-toggle='modal' data-target='#photoModal' data-src='{$photo}'>";
+                                }
+                                echo "</td>
+                                    <td>{$submitted_by}</td>
+                                    <td>{$time}</td>
+                                    <td>{$time_completed}</td>
+                                    <td>{$completed_by}</td>
+                                    <td class='text-center'>
+                                        <form action='operate.php' method='post' class='d-flex justify-content-center'>
+                                            <input type='hidden' name='completed' value='{$id}'>
+                                            <div class='form-check'>
+                                                <input onclick='this.form.submit()' type='checkbox' class='form-check-input' {$checkbox}>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                ";
                             }
                             ?>
                         </tbody>
@@ -134,8 +148,26 @@ if (!isset($_SESSION['loggedin'])) {
         </div>
     </div>
 
+    <div class="modal fade" id="photoModal" tabindex="-1" role="dialog" aria-labelledby="photoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <img src="" id="modalImage" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        $('#photoModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var src = button.data('src');
+            var modal = $(this);
+            modal.find('#modalImage').attr('src', src);
+        });
+    </script>
 </body>
 </html>

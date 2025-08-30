@@ -5,31 +5,6 @@ if (!isset($_SESSION['loggedin'])) {
     header('Location: login.php');
     exit;
 }
-
-include "config.php";
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $room = $_POST['room'] ?? '';
-    $work_to_be_done = $_POST['work_to_be_done'] ?? '';
-    $submitted_by = $_SESSION['name'];
-
-    if (!empty($room) && !empty($work_to_be_done)) {
-        $query = $conn->prepare("INSERT INTO `orders` (`room`, `work_to_be_done`, `submitted_by`) VALUES (:room, :work_to_be_done, :submitted_by)");
-        $query->bindParam(':room', $room);
-        $query->bindParam(':work_to_be_done', $work_to_be_done);
-        $query->bindParam(':submitted_by', $submitted_by);
-
-        if ($query->execute()) {
-            $_SESSION['message'] = "Work order added successfully!";
-        } else {
-            $_SESSION['message'] = "Failed to add work order.";
-        }
-    } else {
-        $_SESSION['message'] = "Please fill in all fields.";
-    }
-    header('Location: index.php');
-    exit;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -78,19 +53,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="col-md-8 offset-md-2">
                 <div class="card shadow-sm">
                     <div class="card-header">
-                        <h2 class="text-center">Add a new work order</h2>
+                        <h2 class="text-center">Add New Work Order</h2>
                     </div>
                     <div class="card-body">
-                        <form action="add.php" method="post">
+                        <form action="addrun.php" method="post" enctype="multipart/form-data">
                             <div class="form-group">
-                                <label for="room">Room number</label>
-                                <input type="text" name="room" class="form-control" id="room" placeholder="Enter room number" required>
+                                <label for="room">Room Number</label>
+                                <input type="text" name="room" id="room" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label for="work_to_be_done">Work to be done</label>
-                                <textarea name="work_to_be_done" class="form-control" id="work_to_be_done" placeholder="Describe the work to be done" rows="4" required></textarea>
+                                <label for="work_to_be_done">Work To Be Done</label>
+                                <textarea name="work_to_be_done" id="work_to_be_done" class="form-control" rows="4" required></textarea>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block">Add Work Order</button>
+                            <div class="form-group">
+                                <label for="photo">Add Photo (Optional)</label>
+                                <input type="file" name="photo" id="photo" class="form-control-file">
+                            </div>
+                            <input type="hidden" name="submitted_by" value="<?php echo htmlspecialchars($_SESSION['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <button type="submit" class="btn btn-primary btn-block">Submit Work Order</button>
                         </form>
                     </div>
                 </div>
