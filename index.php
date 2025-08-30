@@ -119,10 +119,10 @@ if (!isset($_SESSION['loggedin'])) {
                                     <td>{$submitted_by}</td>
                                     <td>{$time}</td>
                                     <td class='text-center'>
-                                        <form action='operate.php' method='post' class='d-flex justify-content-center'>
+                                        <form action='operate.php' method='post' class='completion-form'>
                                             <input type='hidden' name='completed' value='{$id}'>
                                             <div class='form-check'>
-                                                <input onclick='this.form.submit()' type='checkbox' class='form-check-input' {$checkbox}>
+                                                <input type='checkbox' class='form-check-input completion-checkbox' {$checkbox}>
                                             </div>
                                         </form>
                                     </td>
@@ -147,15 +147,103 @@ if (!isset($_SESSION['loggedin'])) {
         </div>
     </div>
 
+    <div class="modal fade" id="addPhotoModal" tabindex="-1" role="dialog" aria-labelledby="addPhotoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPhotoModalLabel">Add Photo to Completed Task</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Task marked as complete. Would you like to add a photo?</p>
+                    <form id="photoUploadForm" enctype="multipart/form-data">
+                        <input type="hidden" name="task_id" id="modal_task_id">
+                        <div class="form-group">
+                            <label for="photo">Select photo:</label>
+                            <input type="file" name="photo" id="photo" class="form-control-file" required>
+                        </div>
+                    </form>
+                     <div id="uploadStatus"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="location.reload()">Skip</button>
+                    <button type="button" class="btn btn-primary" id="uploadPhotoButton">Upload Photo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
+        // Script to view photo in modal
         $('#photoModal').on('show.bs.modal', function (event) {
             var button = $(event.relatedTarget);
             var src = button.data('src');
             var modal = $(this);
             modal.find('#modalImage').attr('src', src);
+        });
+
+        // Script for task completion and photo upload modal
+        $(document).ready(function() {
+            // When a completion checkbox is clicked
+            $('.completion-checkbox').on('click', function(e) {
+                e.preventDefault(); 
+
+                var form = $(this).closest('form');
+                var taskId = form.find('input[name="completed"]').val();
+
+                // Mark the task as complete via AJAX
+                $.ajax({
+                    type: form.attr('method'),
+                    url: form.attr('action'),
+                    data: form.serialize(),
+                    success: function(response) {
+                        // On success, set the task ID in the modal's form and show it
+                        $('#modal_task_id').val(taskId);
+                        $('#addPhotoModal').modal('show');
+                    },
+                    error: function() {
+                        alert('Error completing the task. Please try again.');
+                    }
+                });
+            });
+
+            // When the "Upload Photo" button in the modal is clicked
+            $('#uploadPhotoButton').on('click', function() {
+                var form = $('#photoUploadForm')[0];
+                var formData = new FormData(form);
+
+                // Check if a file is selected
+                if ($('#photo').get(0).files.length === 0) {
+                    $('#uploadStatus').html('<p class="text-danger">Please select a file to upload.</p>');
+                    return;
+                }
+
+                // Upload the photo via AJAX
+                $.ajax({
+                    type: 'POST',
+                    url: 'upload_photo.php',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#uploadStatus').html('<p class="text-success">Photo uploaded successfully!</p>');
+                        // Reload the page after a short delay to see the new photo
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        // jqXHR.responseText contains the detailed error message from our PHP script
+                        var errorMessage = jqXHR.responseText || "An unknown error occurred during upload.";
+                        $('#uploadStatus').html('<p class="text-danger"><strong>Error:</strong> ' + errorMessage + '</p>');
+                    }
+                });
+            });
         });
     </script>
 </body>

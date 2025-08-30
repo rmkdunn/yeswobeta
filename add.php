@@ -53,16 +53,16 @@ if (!isset($_SESSION['loggedin'])) {
             <div class="col-md-8 offset-md-2">
                 <div class="card shadow-sm">
                     <div class="card-header">
-                        <h2 class="text-center">Add New Work Order</h2>
+                        <h2 class="text-center">Add Task</h2>
                     </div>
                     <div class="card-body">
                         <form action="addrun.php" method="post" enctype="multipart/form-data">
                             <div class="form-group">
-                                <label for="room">Room Number</label>
+                                <label for="room">Location</label>
                                 <input type="text" name="room" id="room" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label for="work_to_be_done">Work To Be Done</label>
+                                <label for="work_to_be_done">Task</label>
                                 <textarea name="work_to_be_done" id="work_to_be_done" class="form-control" rows="4" required></textarea>
                             </div>
                             <div class="form-group">
@@ -70,7 +70,7 @@ if (!isset($_SESSION['loggedin'])) {
                                 <input type="file" name="photo" id="photo" class="form-control-file">
                             </div>
                             <input type="hidden" name="submitted_by" value="<?php echo htmlspecialchars($_SESSION['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                            <button type="submit" class="btn btn-primary btn-block">Submit Work Order</button>
+                            <button type="submit" class="btn btn-primary btn-block">Submit Task</button>
                         </form>
                     </div>
                 </div>
