@@ -1,35 +1,211 @@
 <?php
-$host = 'localhost'; // your host name
-$db   = 'work_orders'; // your database name
-$user = 'root'; // your database user
-$pass = '1134206'; // your database password
-$charset = 'utf8mb4';
+session_start();
 
-$searchTerm = $_GET['search']; // get the search term from the form, we use $_GET since the form does not specify method, and the default is GET
-
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$opt = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
-$pdo = new PDO($dsn, $user, $pass, $opt);
-
-$stmt = $pdo->prepare('SELECT * FROM orders WHERE room = ?'); // replace 'column_name' with the column you're searching
-$stmt->execute([$searchTerm]);
-echo '<table border="1">';
-echo '<tr><th>Room</th><th>Work to be done</th><th>Completed</th><th>Time completed</th><th>Submitted</th></tr>'; // Add the header for your table here
-while ($row = $stmt->fetch())
-{
-  
-    echo '<tr>';
-    echo '<td>' . $row['room'] . '</td>';
-    echo '<td>' . $row['work_to_be_done'] . '</td>';
-    echo '<td>' . $row['completed'] . '</td>';
-    echo '<td>' . $row['time_completed'] . '</td>';
-    echo '<td>' . $row['time'] . '</td>';
-    //... and so on for each column
-    echo '</tr>';
+if (!isset($_SESSION['loggedin'])) {
+    header('Location: login.php');
+    exit;
 }
-echo '</table>';
+
+include "config.php";
+
+$data = [];
+$search_performed = !empty($_GET);
+
+if ($search_performed) {
+    // Base query
+    $query_sql = "SELECT * FROM `orders` WHERE 1=1";
+    $params = [];
+
+    // Add conditions based on search parameters
+    if (!empty($_GET['room'])) {
+        $query_sql .= " AND room = :room";
+        $params[':room'] = $_GET['room'];
+    }
+    if (!empty($_GET['work_to_be_done'])) {
+        $query_sql .= " AND work_to_be_done LIKE :work_to_be_done";
+        $params[':work_to_be_done'] = '%' . $_GET['work_to_be_done'] . '%';
+    }
+    if (!empty($_GET['completed_by'])) {
+        $query_sql .= " AND completed_by LIKE :completed_by";
+        $params[':completed_by'] = '%' . $_GET['completed_by'] . '%';
+    }
+    if (!empty($_GET['time'])) {
+        $query_sql .= " AND DATE(time) = :time";
+        $params[':time'] = $_GET['time'];
+    }
+
+    $query_sql .= " ORDER BY `id` DESC";
+
+    $query = $conn->prepare($query_sql);
+    $query->execute($params);
+    $data = $query->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+    <style>
+        .work-order-photo {
+            max-width: 150px;
+            max-height: 150px;
+            cursor: pointer;
+        }
+    </style>
+    <title>Search Work Orders</title>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg sticky-top navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">DFWAM</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/index.php">Home</a>
+                </li>
+                <li class="nav-item dropdown active">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Orders <span class="sr-only">(current)</span>
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="/add.php">Add Work Order</a>
+                        <a class="dropdown-item" href="/search.php">Search Orders</a>
+                     </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/print.php">Print Daily Report</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="logout.php">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col">
+                <h2 class="text-center">Search Work Orders</h2>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <form method="GET" action="search.php">
+                            <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="room">Room #</label>
+                                    <input type="text" class="form-control" id="room" name="room" value="<?php echo htmlspecialchars($_GET['room'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="work_to_be_done">Work To Be Done</label>
+                                    <input type="text" class="form-control" id="work_to_be_done" name="work_to_be_done" value="<?php echo htmlspecialchars($_GET['work_to_be_done'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="completed_by">Completed By</label>
+                                    <input type="text" class="form-control" id="completed_by" name="completed_by" value="<?php echo htmlspecialchars($_GET['completed_by'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="time">Date Submitted</label>
+                                    <input type="date" class="form-control" id="time" name="time" value="<?php echo htmlspecialchars($_GET['time'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            <a href="/search.php" class="btn btn-secondary">Clear</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php if ($search_performed): ?>
+        <div class="row mt-4">
+            <div class="col">
+                <h3 class="text-center">Search Results</h3>
+                <?php if (count($data) > 0): ?>
+                <div class="table-responsive shadow rounded">
+                    <table class="table table-light table-striped table-hover mb-0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Location</th>
+                                <th>Task</th>
+                                <th>Photo</th>
+                                <th>Submitted By</th>
+                                <th>Time</th>
+                                <th>Completed</th>
+                                <th>Completed Time</th>
+                                <th>Completed By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data as $row): ?>
+                                <?php
+                                $id = htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $room = htmlspecialchars($row['room'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $work_to_be_done = htmlspecialchars($row['work_to_be_done'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $photo = htmlspecialchars($row['photo'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $submitted_by = htmlspecialchars($row['submitted_by'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $time = htmlspecialchars($row['time'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $completed = $row['completed'] ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-danger">No</span>';
+                                $time_completed = htmlspecialchars($row['time_completed'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+                                $completed_by = htmlspecialchars($row['completed_by'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+                                ?>
+                                <tr>
+                                    <td><?php echo $id; ?></td>
+                                    <td><?php echo $room; ?></td>
+                                    <td><?php echo $work_to_be_done; ?></td>
+                                    <td>
+                                        <?php if ($photo): ?>
+                                            <img src='<?php echo $photo; ?>' alt='Work Order Photo' class='work-order-photo' data-toggle='modal' data-target='#photoModal' data-src='<?php echo $photo; ?>'>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo $submitted_by; ?></td>
+                                    <td><?php echo $time; ?></td>
+                                    <td class="text-center"><?php echo $completed; ?></td>
+                                    <td><?php echo $time_completed; ?></td>
+                                    <td><?php echo $completed_by; ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php else: ?>
+                    <p class="alert alert-warning text-center mt-3">No work orders found matching your criteria.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="modal fade" id="photoModal" tabindex="-1" role="dialog" aria-labelledby="photoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <img src="" id="modalImage" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        $('#photoModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var src = button.data('src');
+            var modal = $(this);
+            modal.find('#modalImage').attr('src', src);
+        });
+    </script>
+</body>
+</html>

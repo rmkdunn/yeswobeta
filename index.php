@@ -21,7 +21,7 @@ if (!isset($_SESSION['loggedin'])) {
             cursor: pointer;
         }
     </style>
-    <title>Rooms On Call</title>
+    <title>Engineering Task</title>
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg sticky-top navbar-dark bg-dark">
@@ -39,11 +39,9 @@ if (!isset($_SESSION['loggedin'])) {
                         Orders
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="/index.php">Current Work Orders</a>
-                        <a class="dropdown-item" href="/add.php">Add Work Order</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/nfns.php">Notes for Techs</a>
-                    </div>
+                        <a class="dropdown-item" href="/add.php">Add Task</a>
+                        <a class="dropdown-item" href="/search.php">Search Orders</a>
+                                            </div>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/print.php">Print Daily Report</a>
@@ -58,7 +56,7 @@ if (!isset($_SESSION['loggedin'])) {
     <div class="container mt-4">
         <div class="row">
             <div class="col">
-                <h2 class="text-center">Current Work Orders</h2>
+                <h2 class="text-center">Current Task</h2>
                 <h3 class="text-center">Welcome, <?php echo htmlspecialchars($_SESSION['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>!</h3>
             </div>
         </div>
@@ -83,24 +81,19 @@ if (!isset($_SESSION['loggedin'])) {
                         <thead class="thead-dark">
                             <tr>
                                 <th>#</th>
-                                <th>Room</th>
-                                <th>Work To Be Done</th>
+                                <th>Location</th>
+                                <th>Task</th>
                                 <th>Photo</th>
                                 <th>Submitted By</th>
                                 <th>Time</th>
-                                <th>Completed Time</th>
-                                <th>Completed By</th>
                                 <th class="text-center">Completed</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
                             include "config.php";
-                            date_default_timezone_set('America/Chicago');
-                            $today = (date('H') >= 23) ? date('Y-m-d', strtotime('tomorrow')) : date('Y-m-d');
-
-                            $query = $conn->prepare("SELECT * FROM `orders` WHERE DATE(time) = :today ORDER BY `id` DESC");
-                            $query->bindParam(':today', $today);
+                            
+                            $query = $conn->prepare("SELECT * FROM `orders` WHERE completed = 0 ORDER BY `id` DESC");
                             $query->execute();
                             $data = $query->fetchAll(PDO::FETCH_ASSOC);
 
@@ -112,8 +105,6 @@ if (!isset($_SESSION['loggedin'])) {
                                 $photo = htmlspecialchars($row['photo'] ?? '', ENT_QUOTES, 'UTF-8');
                                 $submitted_by = htmlspecialchars($row['submitted_by'] ?? '', ENT_QUOTES, 'UTF-8');
                                 $time = htmlspecialchars($row['time'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $time_completed = htmlspecialchars($row['time_completed'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $completed_by = htmlspecialchars($row['completed_by'] ?? '', ENT_QUOTES, 'UTF-8');
 
                                 echo "
                                 <tr>
@@ -127,8 +118,6 @@ if (!isset($_SESSION['loggedin'])) {
                                 echo "</td>
                                     <td>{$submitted_by}</td>
                                     <td>{$time}</td>
-                                    <td>{$time_completed}</td>
-                                    <td>{$completed_by}</td>
                                     <td class='text-center'>
                                         <form action='operate.php' method='post' class='d-flex justify-content-center'>
                                             <input type='hidden' name='completed' value='{$id}'>
