@@ -1,162 +1,62 @@
 <?php
-session_start();
+include 'header.php'; // Includes the new header with navbar and theme styles
 
 if (!isset($_SESSION['loggedin'])) {
     header('Location: login.php');
     exit;
 }
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
-    <style>
-        .work-order-photo {
-            max-width: 150px;
-            max-height: 150px;
-            cursor: pointer;
-        }
-    </style>
-    <title>Rooms On Call</title>
-</head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg sticky-top navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">DFWAM</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="/index.php">Home <span class="sr-only">(current)</span></a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Orders
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="/add.php">Add Work Order</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/nfns.php">Notes for Techs</a>
-                    </div>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/print.php">Print Daily Report</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="logout.php">Logout</a>
-                </li>
-            </ul>
-        </div>
-    </nav>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col">
-                <h2 class="text-center">Today's Completed Work Orders</h2>
-                <h3 class="text-center">Welcome, <?php echo htmlspecialchars($_SESSION['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>!</h3>
-            </div>
+include "config.php";
+
+// Fetch today's completed orders
+$today = date("Y-m-d");
+$query = $conn->prepare("SELECT * FROM `orders` WHERE completed = 1 AND DATE(time_completed) = :today ORDER BY `time_completed` DESC");
+$query->execute([':today' => $today]);
+$completed_orders = $query->fetchAll(PDO::FETCH_ASSOC);
+?>
+
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h2>Daily Engineering Report</h2>
+        <h4><?php echo date("l, F j, Y"); ?></h4>
+        <button onclick="window.print()" class="btn btn-primary d-print-none">Print Report</button>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Completed Work Orders</h3>
         </div>
-        <div class="row mt-2">
-            <div class="col">
-                <?php
-                if(isset($_SESSION['message'])) {
-                    echo '<p class="alert alert-info">'.htmlspecialchars($_SESSION['message'], ENT_QUOTES, 'UTF-8').'</p>';
-                    unset($_SESSION['message']);
-                }
-                if(isset($_SESSION['completed'])) {
-                    echo '<p class="alert alert-success">'.htmlspecialchars($_SESSION['completed'], ENT_QUOTES, 'UTF-8').'</p>';
-                    unset($_SESSION['completed']);
-                }
-                ?>
-            </div>
-        </div>
-        <div class="row mt-3">
-            <div class="col">
-                <div class="table-responsive shadow rounded">
-                    <table class="table table-light table-striped table-hover mb-0">
+        <div class="card-body">
+            <?php if (count($completed_orders) > 0): ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
                         <thead class="thead-dark">
                             <tr>
                                 <th>#</th>
                                 <th>Location</th>
                                 <th>Task</th>
-                                <th>Photo</th>
-                                <th>Submitted By</th>
-                                <th>Time</th>
-                                <th>Completed Time</th>
                                 <th>Completed By</th>
+                                <th>Time Completed</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php
-                            include "config.php";
-                            date_default_timezone_set('America/Chicago');
-                            $today = date('Y-m-d');
-
-                            $query = $conn->prepare("SELECT * FROM `orders` WHERE completed = 1 AND DATE(time_completed) = :today ORDER BY `id` DESC");
-                            $query->bindParam(':today', $today);
-                            $query->execute();
-                            $data = $query->fetchAll(PDO::FETCH_ASSOC);
-
-                            foreach ($data as $row) {
-                                $id = htmlspecialchars($row['id'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $room = htmlspecialchars($row['room'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $work_to_be_done = htmlspecialchars($row['work_to_be_done'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $photo = htmlspecialchars($row['photo'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $submitted_by = htmlspecialchars($row['submitted_by'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $time = htmlspecialchars($row['time'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $time_completed = htmlspecialchars($row['time_completed'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $completed_by = htmlspecialchars($row['completed_by'] ?? '', ENT_QUOTES, 'UTF-8');
-
-                                echo "
+                            <?php foreach ($completed_orders as $order): ?>
                                 <tr>
-                                    <td>{$id}</td>
-                                    <td>{$room}</td>
-                                    <td>{$work_to_be_done}</td>
-                                    <td>";
-                                if ($photo) {
-                                    echo "<img src='{$photo}' alt='Work Order Photo' class='work-order-photo' data-toggle='modal' data-target='#photoModal' data-src='{$photo}'>";
-                                }
-                                echo "</td>
-                                    <td>{$submitted_by}</td>
-                                    <td>{$time}</td>
-                                    <td>{$time_completed}</td>
-                                    <td>{$completed_by}</td>
+                                    <td><?php echo htmlspecialchars($order['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['room']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['work_to_be_done']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['completed_by']); ?></td>
+                                    <td><?php echo htmlspecialchars(date('h:i A', strtotime($order['time_completed']))); ?></td>
                                 </tr>
-                                ";
-                            }
-                            ?>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            <?php else: ?>
+                <p class="text-center">No work orders were completed today.</p>
+            <?php endif; ?>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="photoModal" tabindex="-1" role="dialog" aria-labelledby="photoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-body">
-                    <img src="" id="modalImage" class="img-fluid">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-    <script>
-        $('#photoModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var src = button.data('src');
-            var modal = $(this);
-            modal.find('#modalImage').attr('src', src);
-        });
-    </script>
-</body>
-</html>
+<?php include 'footer.php'; // Includes the new footer with global JavaScript ?>
