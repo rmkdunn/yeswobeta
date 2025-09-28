@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Test</title>
+</head>
+<body>
+    <h1>Photo Access Test</h1>
+    
+    <h2>Direct Image Links</h2>
+    <p><a href="uploads/1758995159.3362.jpg" target="_blank">uploads/1758995159.3362.jpg</a></p>
+    <p><a href="uploads/test-photo.jpg" target="_blank">uploads/test-photo.jpg</a></p>
+    
+    <h2>Images Embedded</h2>
+    <div>
+        <h3>uploads/1758995159.3362.jpg</h3>
+        <img src="uploads/1758995159.3362.jpg" style="max-width: 200px; border: 1px solid #ccc;" alt="Test Photo 1">
+    </div>
+    
+    <div>
+        <h3>uploads/test-photo.jpg</h3>
+        <img src="uploads/test-photo.jpg" style="max-width: 200px; border: 1px solid #ccc;" alt="Test Photo 2">
+    </div>
+    
+    <h2>Modal Test</h2>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    
+    <button class="btn btn-primary" data-toggle="modal" data-target="#testModal" data-src="uploads/1758995159.3362.jpg">Test Modal 1</button>
+    <button class="btn btn-primary" data-toggle="modal" data-target="#testModal" data-src="uploads/test-photo.jpg">Test Modal 2</button>
+    
+    <!-- Modal -->
+    <div class="modal fade" id="testModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Test Photo Modal</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="" id="testModalImage" class="img-fluid" style="max-height: 70vh;">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    $('#testModal').on('show.bs.modal', function (event) {
+        console.log('Test modal opening...');
+        var button = $(event.relatedTarget);
+        var src = button.data('src');
+        var modal = $(this);
+        
+        console.log('Image source:', src);
+        
+        modal.find('.modal-body').html('<div class="text-center"><p>Loading image...</p><p><small>' + src + '</small></p></div>');
+        
+        var img = new Image();
+        img.onload = function() {
+            console.log('Image loaded successfully:', src);
+            modal.find('.modal-body').html('<img src="' + src + '" class="img-fluid" style="max-height: 70vh;">');
+        };
+        img.onerror = function() {
+            console.error('Image failed to load:', src);
+            modal.find('.modal-body').html('<div class="text-center text-muted"><p>Photo could not be loaded<br><small>' + src + '</small></p></div>');
+        };
+        
+        img.src = src;
+    });
+    </script>
+</body>
+</html>

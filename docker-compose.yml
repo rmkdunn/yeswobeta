@@ -1,0 +1,57 @@
+services:
+  # PHP/Apache Web Server
+  web:
+    build: .
+    ports:
+      - "8000:80"
+    volumes:
+      - ./uploads:/var/www/html/uploads
+      - ./logs:/var/log/apache2
+    environment:
+      - DB_HOST=db
+      - DB_NAME=work_orders
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: work_orders
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/work_orders.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+
+  # phpMyAdmin (Optional - for database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "8001:80"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
+    driver: bridge
